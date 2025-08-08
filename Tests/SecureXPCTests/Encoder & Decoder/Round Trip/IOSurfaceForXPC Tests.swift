@@ -25,7 +25,7 @@ final class IOSurfaceForXPCTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("surface", "please")
                             .withReplyType(IOSurfaceForXPC.self)
-        server.registerRoute(route) { connectionId in
+        server.registerRoute(route) { connectionToken in
             IOSurfaceForXPC(wrappedValue: IOSurface(properties: surfaceProps)!)
         }
         server.start()

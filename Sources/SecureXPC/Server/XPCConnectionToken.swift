@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct ConnectionId {
+public struct XPCConnectionToken {
 
     public let id: UUID
     public let clientPid: pid_t
@@ -18,6 +18,6 @@ public struct ConnectionId {
     }
 
     static func makeEmpty() -> Self {
-        ConnectionId(clientPid: -1)
+        XPCConnectionToken(clientPid: -1)
     }
 }
