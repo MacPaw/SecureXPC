@@ -26,7 +26,7 @@ class ServerErrorHandlerTest: XCTestCase {
         server.registerRoute(failureRoute) {
             throw ExampleError.completeAndUtterFailure
         }
-        server.setErrorHandler { error in
+        server.setErrorHandler { error, connectionId in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -57,7 +57,7 @@ class ServerErrorHandlerTest: XCTestCase {
         server.registerRoute(failureRoute) {
             throw ExampleError.completeAndUtterFailure
         }
-        server.setErrorHandler { error async -> Void in
+        server.setErrorHandler { error, connectionId async -> Void in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -90,7 +90,7 @@ class ServerErrorHandlerTest: XCTestCase {
         server.registerRoute(failureRoute) { provider in
             provider.failure(error: errorToThrow)
         }
-        server.setErrorHandler { error in
+        server.setErrorHandler { error, connectionId in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -122,7 +122,7 @@ class ServerErrorHandlerTest: XCTestCase {
         server.registerRoute(failureRoute) { provider in
             provider.failure(error: errorToThrow)
         }
-        server.setErrorHandler { error async -> Void in
+        server.setErrorHandler { error, connectionId async -> Void in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,

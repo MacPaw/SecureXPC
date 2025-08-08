@@ -358,7 +358,7 @@ class SequentialResultTests: XCTestCase {
             provider.finished()
             provider.success(value: 2)
         }
-        server.setErrorHandler { error in
+        server.setErrorHandler { error, connectionId in
             switch error {
                 case .sequenceFinished:
                     expectation.fulfill()

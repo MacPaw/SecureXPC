@@ -11,35 +11,37 @@ import SecureXPC
 // This code runs as a launch agent, which is created by LaunchAgent.swift.
 // Make sure to only reference SecureXPC and Shared.swift; anything else will fail when compiling.
 
-let server = try createServer()
+func main() throws -> Int {
+    let server = try createServer()
 
-server.registerRoute(SharedRoutes.echoRoute) { $0 }
+    server.registerRoute(SharedRoutes.echoRoute) { $0 }
 
-var latestAndGreatest = LatestAndGreatest(now: SharedTrivial(CFAbsoluteTimeGetCurrent()),
-                                          latestValue: SharedTrivial(Double.random(in: 0.0...1000.0)))
-server.registerRoute(SharedRoutes.latestRoute) { latestAndGreatest }
-server.registerRoute(SharedRoutes.mutateLatestRoute) {
-    try latestAndGreatest.now.updateValue(CFAbsoluteTimeGetCurrent())
-    let nextValue = try latestAndGreatest.latestValue.retrieveValue() + Double.random(in: 0.0...1000.0)
-    try latestAndGreatest.latestValue.updateValue(nextValue)
-}
+    var latestAndGreatest = LatestAndGreatest(now: SharedTrivial(CFAbsoluteTimeGetCurrent()),
+                                              latestValue: SharedTrivial(Double.random(in: 0.0...1000.0)))
+    server.registerRoute(SharedRoutes.latestRoute) { latestAndGreatest }
+    server.registerRoute(SharedRoutes.mutateLatestRoute) {
+        try latestAndGreatest.now.updateValue(CFAbsoluteTimeGetCurrent())
+        let nextValue = try latestAndGreatest.latestValue.retrieveValue() + Double.random(in: 0.0...1000.0)
+        try latestAndGreatest.latestValue.updateValue(nextValue)
+    }
 
-server.registerRoute(SharedRoutes.terminate) {
-    exit(0)
-}
-server.registerRoute(SharedRoutes.fibonacciRoute) { n, provider in
-    fibonacciSequence(n: n, provider: provider)
-    provider.finished()
-}
-
-server.registerRoute(SharedRoutes.selfTerminatingFibonacciRoute) { n, provider in
-    fibonacciSequence(n: n, provider: provider)
-    provider.finished { _ in
+    server.registerRoute(SharedRoutes.terminate) {
         exit(0)
     }
-}
+    server.registerRoute(SharedRoutes.fibonacciRoute) { n, provider in
+        fibonacciSequence(n: n, provider: provider)
+        provider.finished()
+    }
 
-server.startAndBlock()
+    server.registerRoute(SharedRoutes.selfTerminatingFibonacciRoute) { n, provider in
+        fibonacciSequence(n: n, provider: provider)
+        provider.finished { _ in
+            exit(0)
+        }
+    }
+
+    server.startAndBlock()
+}
 
 func createServer() throws -> XPCServer {
     // To simplify things while having a dynamically generated Mach service name, the name is the name of this executable
