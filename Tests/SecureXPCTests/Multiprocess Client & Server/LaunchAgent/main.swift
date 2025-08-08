@@ -14,26 +14,26 @@ import SecureXPC
 func main() throws -> Int {
     let server = try createServer()
 
-    server.registerRoute(SharedRoutes.echoRoute) { $0 }
+    server.registerRoute(SharedRoutes.echoRoute) { connectionId, string in string }
 
-    var latestAndGreatest = LatestAndGreatest(now: SharedTrivial(CFAbsoluteTimeGetCurrent()),
+    let latestAndGreatest = LatestAndGreatest(now: SharedTrivial(CFAbsoluteTimeGetCurrent()),
                                               latestValue: SharedTrivial(Double.random(in: 0.0...1000.0)))
-    server.registerRoute(SharedRoutes.latestRoute) { latestAndGreatest }
-    server.registerRoute(SharedRoutes.mutateLatestRoute) {
+    server.registerRoute(SharedRoutes.latestRoute) { connectionId in latestAndGreatest }
+    server.registerRoute(SharedRoutes.mutateLatestRoute) { connectionId in
         try latestAndGreatest.now.updateValue(CFAbsoluteTimeGetCurrent())
         let nextValue = try latestAndGreatest.latestValue.retrieveValue() + Double.random(in: 0.0...1000.0)
         try latestAndGreatest.latestValue.updateValue(nextValue)
     }
 
-    server.registerRoute(SharedRoutes.terminate) {
+    server.registerRoute(SharedRoutes.terminate) { connectionId in
         exit(0)
     }
-    server.registerRoute(SharedRoutes.fibonacciRoute) { n, provider in
+    server.registerRoute(SharedRoutes.fibonacciRoute) { connectionId, n, provider in
         fibonacciSequence(n: n, provider: provider)
         provider.finished()
     }
 
-    server.registerRoute(SharedRoutes.selfTerminatingFibonacciRoute) { n, provider in
+    server.registerRoute(SharedRoutes.selfTerminatingFibonacciRoute) { connectionId, n, provider in
         fibonacciSequence(n: n, provider: provider)
         provider.finished { _ in
             exit(0)

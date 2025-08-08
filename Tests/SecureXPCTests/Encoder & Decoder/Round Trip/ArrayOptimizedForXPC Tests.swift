@@ -21,7 +21,7 @@ final class ArrayOptimizedForXPCTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("one", "info", "please")
                             .withReplyType(Info.self)
-        server.registerRoute(route) {
+        server.registerRoute(route) { connectionId in
             return Info(description: "This is your info", array: array)
         }
         server.start()

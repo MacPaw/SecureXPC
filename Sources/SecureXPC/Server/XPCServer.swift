@@ -200,7 +200,7 @@ public class XPCServer {
     ///   - handler: Will be called when the server receives an incoming request for this route if the request is accepted.
     @available(macOS 10.15.0, *)
     public func registerRoute(_ route: XPCRouteWithoutMessageWithoutReply,
-                              handler: @escaping () async throws -> Void) {
+                              handler: @escaping (ConnectionId) async throws -> Void) {
         self.registerRoute(route.route, handler: ConstrainedXPCHandlerWithoutMessageWithoutReplyAsync(handler: handler))
     }
     
@@ -800,7 +800,7 @@ fileprivate protocol XPCHandlerAsync: XPCHandler {
 @available(macOS 10.15.0, *)
 fileprivate struct ConstrainedXPCHandlerWithoutMessageWithoutReplyAsync: XPCHandlerAsync {
     var shouldCreateReply = true
-    let handler: () async throws -> Void
+    let handler: (ConnectionId) async throws -> Void
 
     func handle(
         request: Request,
@@ -809,7 +809,7 @@ fileprivate struct ConstrainedXPCHandlerWithoutMessageWithoutReplyAsync: XPCHand
         reply: inout xpc_object_t?
     ) async throws {
         try checkRequest(request, reply: &reply, messageType: nil, replyType: nil, sequentialReplyType: nil)
-        try await HandlerError.rethrow { try await self.handler() }
+        try await HandlerError.rethrow { try await self.handler(connection.connectionId) }
     }
 }
 

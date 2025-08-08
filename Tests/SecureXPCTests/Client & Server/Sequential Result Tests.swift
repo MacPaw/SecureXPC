@@ -27,7 +27,7 @@ class SequentialResultTests: XCTestCase {
         let noMessageWithReplySequenceRoute = XPCRoute.named("noMsgWithSequentialReply")
                                                       .withSequentialReplyType(Int.self)
         let valuesExpected = 5
-        server.registerRoute(noMessageWithReplySequenceRoute) { provider in
+        server.registerRoute(noMessageWithReplySequenceRoute) { (connectionId, provider) in
             for n in 1...valuesExpected {
                 provider.success(value: n)
                 Thread.sleep(forTimeInterval: 0.01)
@@ -57,7 +57,7 @@ class SequentialResultTests: XCTestCase {
         let noMessageWithReplySequenceRoute = XPCRoute.named("noMsgWithSequentialReply")
                                                       .withSequentialReplyType(Int.self)
         let valuesExpected = 5
-        server.registerRoute(noMessageWithReplySequenceRoute) { provider in
+        server.registerRoute(noMessageWithReplySequenceRoute) { (connectionId, provider) in
             for n in 1...valuesExpected {
                 provider.success(value: n)
                 Thread.sleep(forTimeInterval: 0.01)
@@ -82,7 +82,7 @@ class SequentialResultTests: XCTestCase {
         let noMessageWithReplySequenceRoute = XPCRoute.named("noMsgWithSequentialReply")
                                                       .withSequentialReplyType(Int.self)
         let valuesExpected = 5
-        server.registerRoute(noMessageWithReplySequenceRoute) { provider async in
+        server.registerRoute(noMessageWithReplySequenceRoute) { (connectionId, provider) async in
             do {
                 for n in 1...valuesExpected {
                     try await provider.success(value: n)
@@ -112,7 +112,7 @@ class SequentialResultTests: XCTestCase {
         let messageWithReplySequenceRoute = XPCRoute.named("msgWithSequentialReply")
                                                     .withMessageType(Int.self)
                                                     .withSequentialReplyType(Int.self)
-        server.registerRoute(messageWithReplySequenceRoute) { upperLimit, provider in
+        server.registerRoute(messageWithReplySequenceRoute) { (connectionId, upperLimit, provider) in
             for n in 1...upperLimit {
                 provider.success(value: n)
                 Thread.sleep(forTimeInterval: 0.01)
@@ -134,7 +134,7 @@ class SequentialResultTests: XCTestCase {
                     }
             }
         }
-        
+
         self.waitForExpectations(timeout: 1)
     }
 
@@ -145,7 +145,7 @@ class SequentialResultTests: XCTestCase {
                                                     .withSequentialReplyType(Int.self)
         let valuesExpected = 5
         var valuesReceived = 0
-        server.registerRoute(messageWithReplySequenceRoute) { upperLimit, provider in
+        server.registerRoute(messageWithReplySequenceRoute) { connectionId, upperLimit, provider in
             for n in 1...upperLimit {
                 provider.success(value: n)
                 Thread.sleep(forTimeInterval: 0.01)
@@ -171,7 +171,7 @@ class SequentialResultTests: XCTestCase {
                                                     .withSequentialReplyType(Int.self)
         let valuesExpected = 5
         var valuesReceived = 0
-        server.registerRoute(messageWithReplySequenceRoute) { upperLimit, provider async in
+        server.registerRoute(messageWithReplySequenceRoute) { connectionId, upperLimit, provider async in
             do {
                 for n in 1...upperLimit {
                     try await provider.success(value: n)
@@ -205,7 +205,7 @@ class SequentialResultTests: XCTestCase {
                             .withSequentialReplyType(Int.self)
                             .throwsType(ExampleError.self)
         
-        server.registerRoute(route) { provider in
+        server.registerRoute(route) { connectionId, provider in
             provider.success(value: 1)
             provider.success(value: 2)
             provider.failure(error: ExampleError.didNotWork)
@@ -225,8 +225,8 @@ class SequentialResultTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
-        await self.waitForExpectations(timeout: 1)
+
+        await fulfillment(of: [expectation], timeout: 1)
     }
     
     func testPropagateError_Sync() throws {
@@ -249,7 +249,7 @@ class SequentialResultTests: XCTestCase {
                             .withSequentialReplyType(Int.self)
                             .throwsType(ExampleError.self)
         
-        server.registerRoute(route) { provider in
+        server.registerRoute(route) { connectionId, provider in
             provider.success(value: 1)
             provider.success(value: 2)
             provider.failure(error: ExampleError.didNotWork)
@@ -321,7 +321,7 @@ class SequentialResultTests: XCTestCase {
         let route = XPCRoute.named("client", "side", "issue")
                             .withSequentialReplyType(MiscContainer.self)
         
-        server.registerRoute(route) { provider async in
+        server.registerRoute(route) { connectionId, provider async in
             do {
                 try await provider.success(value: .noValue)
                 try await provider.success(value: .alwaysFailedDecode(NotActuallyDecodable()))
@@ -353,7 +353,7 @@ class SequentialResultTests: XCTestCase {
         let route = XPCRoute.named("server", "side", "issue")
                             .withSequentialReplyType(Int.self)
         
-        server.registerRoute(route) { provider in
+        server.registerRoute(route) { connectionId, provider in
             provider.success(value: 1)
             provider.finished()
             provider.success(value: 2)
@@ -389,7 +389,7 @@ class SequentialResultTests: XCTestCase {
              let server = XPCServer.makeAnonymous()
              let client = XPCClient.forEndpoint(server.endpoint)
              
-             server.registerRoute(route) { maxValue, resultProvider in
+             server.registerRoute(route) { connectionId, maxValue, resultProvider in
                  do {
                      for value in 0 ..< maxValue {
                          try await resultProvider.success(value: value)

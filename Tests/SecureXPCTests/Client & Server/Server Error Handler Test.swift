@@ -23,7 +23,7 @@ class ServerErrorHandlerTest: XCTestCase {
         let failureRoute = XPCRoute.named("always", "throws")
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) {
+        server.registerRoute(failureRoute) { connectionId in
             throw ExampleError.completeAndUtterFailure
         }
         server.setErrorHandler { error, connectionId in
@@ -54,7 +54,7 @@ class ServerErrorHandlerTest: XCTestCase {
         let failureRoute = XPCRoute.named("always", "throws")
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) {
+        server.registerRoute(failureRoute) { connectionId in
             throw ExampleError.completeAndUtterFailure
         }
         server.setErrorHandler { error, connectionId async -> Void in
@@ -87,7 +87,7 @@ class ServerErrorHandlerTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(failureRoute) { provider in
+        server.registerRoute(failureRoute) { (connectionId, provider) in
             provider.failure(error: errorToThrow)
         }
         server.setErrorHandler { error, connectionId in
@@ -119,7 +119,7 @@ class ServerErrorHandlerTest: XCTestCase {
                                    .withSequentialReplyType(String.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { provider in
+        server.registerRoute(failureRoute) { (connectionId, provider) in
             provider.failure(error: errorToThrow)
         }
         server.setErrorHandler { error, connectionId async -> Void in

@@ -29,7 +29,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("fd", "provider")
                             .withReplyType(FileDescriptorForXPC.self)
-        server.registerRoute(route) {
+        server.registerRoute(route) { connectionId in
             FileDescriptorForXPC(wrappedValue: FileDescriptor(rawValue: open(self.currentPath(), O_RDONLY)))
         }
         server.start()
@@ -51,7 +51,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("secure", "document")
                             .withReplyType(SecureDocument.self)
-        server.registerRoute(route) {
+        server.registerRoute(route) { connectionId in
             SecureDocument(securityLevel: 5, document: FileDescriptor(rawValue: open(self.currentPath(), O_RDONLY)))
         }
         server.start()
@@ -69,7 +69,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("fd", "provider")
                             .withReplyType(FileHandleForXPC.self)
-        server.registerRoute(route) {
+        server.registerRoute(route) { connectionId in
             FileHandleForXPC(wrappedValue: FileHandle(forReadingAtPath: self.currentPath())!, closeOnEncode: true)
         }
         server.start()
@@ -91,7 +91,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("secure", "document")
                             .withReplyType(SecureDocument.self)
-        server.registerRoute(route) {
+        server.registerRoute(route) { connectionId in
             SecureDocument(securityLevel: 5, document: FileHandle(forReadingAtPath: self.currentPath())!)
         }
         server.start()
@@ -111,7 +111,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
                                 .withReplyType(FileHandleForXPC.self)
         let clientRoute = XPCRoute.named("fd", "provider")
                                 .withReplyType(FileDescriptorForXPC.self)
-        server.registerRoute(serverRoute) {
+        server.registerRoute(serverRoute) { connectionId in
             FileHandleForXPC(wrappedValue: FileHandle(forReadingAtPath: self.currentPath())!, closeOnEncode: true)
         }
         server.start()
@@ -140,7 +140,7 @@ final class FileDescriptorXPCContainerTests: XCTestCase {
                                 .withReplyType(ServerSecureDocument.self)
         let clientRoute = XPCRoute.named("secure", "document")
                                 .withReplyType(ClientSecureDocument.self)
-        server.registerRoute(serverRoute) {
+        server.registerRoute(serverRoute) { connectionId in
             ServerSecureDocument(securityLevel: 5, document: FileDescriptor(rawValue: open(self.currentPath(), O_RDONLY)))
         }
         server.start()
