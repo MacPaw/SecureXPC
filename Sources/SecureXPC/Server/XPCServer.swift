@@ -931,8 +931,7 @@ extension xpc_connection_t {
     var token: XPCConnectionToken {
         get {
             guard let context = xpc_connection_get_context(self) else {
-                let pid = xpc_connection_get_pid(self)
-                return XPCConnectionToken(clientPID: pid)
+                preconditionFailure("expected to have a context")
             }
             return context.assumingMemoryBound(to: XPCConnectionToken.self).pointee
         }
