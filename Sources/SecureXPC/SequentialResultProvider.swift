@@ -165,7 +165,6 @@ public class SequentialResultProvider<S: Encodable> {
     ///   -   deliveryHandler: Invoked upon succesful delivery of the error to the client or failure to do so.
     public func failure(error: Error, onDelivery deliveryHandler: SequentialResultDeliveryHandler? = nil) {
         let handlerError = HandlerError(error: error)
-
         self.sendToServerErrorHandler(handlerError, self.connection?.token)
 
         self.sendResponse(isFinished: true, onDelivery: deliveryHandler) { response in
@@ -221,7 +220,6 @@ public class SequentialResultProvider<S: Encodable> {
         self.serialQueue.async {
             if self.isFinished {
                 deliveryHandler?(.failure(XPCError.sequenceFinished))
-
                 self.sendToServerErrorHandler(XPCError.sequenceFinished, self.connection?.token)
                 return
             }
@@ -274,7 +272,6 @@ public class SequentialResultProvider<S: Encodable> {
         }
     }
 
-    // TODO: handle optional token
     private func sendToServerErrorHandler(_ error: Error, _ connectionToken: XPCConnectionToken?) {
         if let server = server {
             server.errorHandler.handle(XPCError.asXPCError(error: error), connectionToken)
