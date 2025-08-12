@@ -346,7 +346,13 @@ public class XPCServer {
 
         // Associate XPCConnectionToken with xpc_connection
         let connectionToken = XPCConnectionToken(connection: connection)
-        connection.token = connectionToken
+        let context = UnsafeMutablePointer<XPCConnectionToken>.allocate(capacity: 1)
+        context.initialize(to: connectionToken)
+
+        xpc_connection_set_context(connection, context)
+        xpc_connection_set_finalizer_f(connection) { inner_context in
+            inner_context?.deallocate()
+        }
 
         xpc_connection_set_event_handler(connection, { event in
             self.handleEvent(connection: connection, event: event)
@@ -934,17 +940,6 @@ extension xpc_connection_t {
                 preconditionFailure("expected to have a context")
             }
             return context.assumingMemoryBound(to: XPCConnectionToken.self).pointee
-        }
-        set {
-            // Setting context when connection already have one - will NOT call finalilzer for the
-            // previously set context.
-            let context = UnsafeMutablePointer<XPCConnectionToken>.allocate(capacity: 1)
-            context.initialize(to: newValue)
-
-            xpc_connection_set_context(self, context)
-            xpc_connection_set_finalizer_f(self) { inner_context in
-                inner_context?.deallocate()
-            }
         }
     }
 }
