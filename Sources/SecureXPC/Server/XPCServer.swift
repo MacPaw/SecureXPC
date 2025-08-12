@@ -939,8 +939,8 @@ extension xpc_connection_t {
         set {
             // Setting context when connection already have one - will NOT call finalilzer for the
             // previously set context.
-            var context = UnsafeMutablePointer<XPCConnectionToken>.allocate(capacity: 1)
-            context.initialize(to: token)
+            let context = UnsafeMutablePointer<XPCConnectionToken>.allocate(capacity: 1)
+            context.initialize(to: newValue)
 
             xpc_connection_set_context(self, context)
             xpc_connection_set_finalizer_f(self) { inner_context in
