@@ -932,7 +932,7 @@ extension xpc_connection_t {
         get {
             guard let context = xpc_connection_get_context(self) else {
                 let pid = xpc_connection_get_pid(self)
-                return XPCConnectionToken(clientPid: pid)
+                return XPCConnectionToken(clientPID: pid)
             }
             return context.assumingMemoryBound(to: XPCConnectionToken.self).pointee
         }
@@ -954,6 +954,6 @@ extension XPCConnectionToken {
 
     init(connection: xpc_connection_t) {
         let pid = xpc_connection_get_pid(connection)
-        self.init(clientPid: pid)
+        self.init(clientPID: pid)
     }
 }

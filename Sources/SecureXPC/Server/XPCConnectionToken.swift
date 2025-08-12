@@ -10,10 +10,10 @@ import Foundation
 public struct XPCConnectionToken {
 
     public let id: UUID
-    public let clientPid: pid_t
+    public let clientPID: pid_t
 
-    public init(clientPid: pid_t) {
+    public init(clientPID: pid_t) {
         self.id = UUID()
-        self.clientPid = clientPid
+        self.clientPID = clientPID
     }
 }
