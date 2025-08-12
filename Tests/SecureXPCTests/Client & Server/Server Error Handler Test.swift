@@ -23,10 +23,10 @@ class ServerErrorHandlerTest: XCTestCase {
         let failureRoute = XPCRoute.named("always", "throws")
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw ExampleError.completeAndUtterFailure
         }
-        server.setErrorHandler { error, connectionToken in
+        server.setErrorHandler { error, _ in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -54,10 +54,10 @@ class ServerErrorHandlerTest: XCTestCase {
         let failureRoute = XPCRoute.named("always", "throws")
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw ExampleError.completeAndUtterFailure
         }
-        server.setErrorHandler { error, connectionToken async -> Void in
+        server.setErrorHandler { error, _ async -> Void in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -87,10 +87,10 @@ class ServerErrorHandlerTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(failureRoute) { (connectionToken, provider) in
+        server.registerRoute(failureRoute) { (_, provider) in
             provider.failure(error: errorToThrow)
         }
-        server.setErrorHandler { error, connectionToken in
+        server.setErrorHandler { error, _ in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,
@@ -119,10 +119,10 @@ class ServerErrorHandlerTest: XCTestCase {
                                    .withSequentialReplyType(String.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { (connectionToken, provider) in
+        server.registerRoute(failureRoute) { (_, provider) in
             provider.failure(error: errorToThrow)
         }
-        server.setErrorHandler { error, connectionToken async -> Void in
+        server.setErrorHandler { error, _ async -> Void in
             switch error {
                 case .handlerError(let error):
                     if case let .available(underlyingError) = error.underlyingError,

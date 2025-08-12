@@ -81,7 +81,7 @@ class RequestContextTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(route) { (ConnectionToken) async -> Void in
+        server.registerRoute(route) { (XPCConnectionToken) async -> Void in
             XCTAssertNotNil(XPCServer.ClientIdentity.code)
             var staticCode: SecStaticCode?
             SecCodeCopyStaticCode(XPCServer.ClientIdentity.code!, [], &staticCode)
