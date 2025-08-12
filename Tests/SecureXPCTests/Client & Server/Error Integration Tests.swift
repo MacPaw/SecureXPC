@@ -24,7 +24,7 @@ class ErrorIntegrationTests: XCTestCase {
                                    .throwsType(ExampleError.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw ExampleError.twoOfAKind
         }
         server.start()
@@ -45,7 +45,7 @@ class ErrorIntegrationTests: XCTestCase {
                                    .throwsType(ExampleError.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw errorToThrow
         }
         server.start()
@@ -77,7 +77,7 @@ class ErrorIntegrationTests: XCTestCase {
                                    .throwsType(SampleError.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw ExampleError.twoOfAKind
         }
         server.start()
@@ -97,7 +97,7 @@ class ErrorIntegrationTests: XCTestCase {
                                    .throwsType(SampleError.self)
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
-        server.registerRoute(failureRoute) { connectionToken in
+        server.registerRoute(failureRoute) { _ in
             throw ExampleError.twoOfAKind
         }
         server.start()

@@ -32,7 +32,7 @@ class RequestContextTest: XCTestCase {
         
         let contextValueAccessed = self.expectation(description: "Able to access effective user id")
         
-        server.registerRoute(route) { connectionToken in
+        server.registerRoute(route) { _ in
             // If this fails it'll fatalError, so all we're doing here is ensuring that doesn't happen
             _ = XPCServer.ClientIdentity.effectiveUserID
             contextValueAccessed.fulfill()
@@ -64,7 +64,7 @@ class RequestContextTest: XCTestCase {
         
         let contextValueAccessed = self.expectation(description: "Able to access effective group id")
         
-        server.registerRoute(route) { connectionToken in
+        server.registerRoute(route) { _ in
             // If this fails it'll fatalError, so all we're doing here is ensuring that doesn't happen
             _ = XPCServer.ClientIdentity.effectiveGroupID
             contextValueAccessed.fulfill()
@@ -101,7 +101,7 @@ class RequestContextTest: XCTestCase {
         
         let clientCodeNotNil = self.expectation(description: "Client code should not be nil in this circumstance")
         
-        server.registerRoute(route) { connectionToken in
+        server.registerRoute(route) { _ in
             if let clientCode = XPCServer.ClientIdentity.code {
                 clientCodeNotNil.fulfill()
                 var staticCode: SecStaticCode?

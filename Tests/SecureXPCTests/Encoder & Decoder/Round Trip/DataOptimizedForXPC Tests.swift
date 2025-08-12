@@ -21,7 +21,7 @@ final class DataOptimizedForXPCTests: XCTestCase {
         let client = XPCClient.forEndpoint(server.endpoint)
         let route = XPCRoute.named("one", "info", "please")
                             .withReplyType(Info.self)
-        server.registerRoute(route) { connectionToken in
+        server.registerRoute(route) { _ in
             return Info(description: "This is your info", data: data)
         }
         server.start()
