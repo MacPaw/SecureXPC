@@ -452,7 +452,7 @@ public class XPCServer {
     /// Sets a handler to synchronously receive any errors encountered.
     ///
     /// This will replace any previously set error handler, including an asynchronous one.
-    public func setErrorHandler(_ handler: @escaping (XPCError, XPCConnectionToken) -> Void) {
+    public func setErrorHandler(_ handler: @escaping (XPCError, XPCConnectionToken?) -> Void) {
         self.errorHandler = .sync(handler)
     }
     
@@ -460,7 +460,7 @@ public class XPCServer {
     ///
     /// This will replace any previously set error handler, including a synchronous one.
     @available(macOS 10.15.0, *)
-    public func setErrorHandler(_ handler: @escaping (XPCError, XPCConnectionToken) async -> Void) {
+    public func setErrorHandler(_ handler: @escaping (XPCError, XPCConnectionToken?) async -> Void) {
         self.errorHandler = .async(handler)
     }
     
@@ -905,10 +905,10 @@ fileprivate struct ConstrainedXPCHandlerWithMessageWithSequentialReplyAsync<M: D
 /// Wrapper around an error handling closure to ensure there's only ever one error handler regardless of whether it's synchronous or asynchronous.
 enum ErrorHandler {
     case none
-    case sync((XPCError, XPCConnectionToken) -> Void)
-    case async((XPCError, XPCConnectionToken) async -> Void)
+    case sync((XPCError, XPCConnectionToken?) -> Void)
+    case async((XPCError, XPCConnectionToken?) async -> Void)
 
-    func handle(_ error: XPCError, _ connectionToken: XPCConnectionToken) {
+    func handle(_ error: XPCError, _ connectionToken: XPCConnectionToken?) {
         switch self {
             case .none:
                 break

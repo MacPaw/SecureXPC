@@ -166,8 +166,7 @@ public class SequentialResultProvider<S: Encodable> {
     public func failure(error: Error, onDelivery deliveryHandler: SequentialResultDeliveryHandler? = nil) {
         let handlerError = HandlerError(error: error)
 
-        let connectionToken = self.connection?.token ?? XPCConnectionToken.makeEmpty()
-        self.sendToServerErrorHandler(handlerError, connectionToken)
+        self.sendToServerErrorHandler(handlerError, self.connection?.token)
 
         self.sendResponse(isFinished: true, onDelivery: deliveryHandler) { response in
             try Response.encodeError(XPCError.handlerError(handlerError), intoReply: &response)
@@ -223,8 +222,7 @@ public class SequentialResultProvider<S: Encodable> {
             if self.isFinished {
                 deliveryHandler?(.failure(XPCError.sequenceFinished))
 
-                let connectionToken = self.connection?.token ?? XPCConnectionToken.makeEmpty()
-                self.sendToServerErrorHandler(XPCError.sequenceFinished, connectionToken)
+                self.sendToServerErrorHandler(XPCError.sequenceFinished, self.connection?.token)
                 return
             }
             
@@ -232,7 +230,7 @@ public class SequentialResultProvider<S: Encodable> {
             
             guard let connection = self.connection else {
                 deliveryHandler?(.failure(XPCError.clientNotConnected))
-                self.sendToServerErrorHandler(XPCError.clientNotConnected, XPCConnectionToken.makeEmpty())
+                self.sendToServerErrorHandler(XPCError.clientNotConnected, nil)
                 return
             }
 
@@ -275,8 +273,9 @@ public class SequentialResultProvider<S: Encodable> {
             }
         }
     }
-    
-    private func sendToServerErrorHandler(_ error: Error, _ connectionToken: XPCConnectionToken) {
+
+    // TODO: handle optional token
+    private func sendToServerErrorHandler(_ error: Error, _ connectionToken: XPCConnectionToken?) {
         if let server = server {
             server.errorHandler.handle(XPCError.asXPCError(error: error), connectionToken)
         }

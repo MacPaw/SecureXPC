@@ -16,8 +16,4 @@ public struct XPCConnectionToken {
         self.id = UUID()
         self.clientPid = clientPid
     }
-
-    static func makeEmpty() -> Self {
-        XPCConnectionToken(clientPid: -1)
-    }
 }
