@@ -17,7 +17,7 @@ class EndpointTests: XCTestCase {
         let client2 = XPCClient.forEndpoint(server.endpoint)
         
         let pingRoute = XPCRoute.named("ping").withReplyType(String.self)
-        server.registerRoute(pingRoute) { () async -> String in
+        server.registerRoute(pingRoute) { (XPCConnectionToken) async -> String in
             "pong"
         }
         server.start()

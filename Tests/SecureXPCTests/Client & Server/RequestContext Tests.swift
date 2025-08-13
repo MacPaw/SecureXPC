@@ -16,7 +16,7 @@ class RequestContextTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(route) { () async -> Void in
+        server.registerRoute(route) { (XPCConnectionToken) async -> Void in
             // If this fails it'll fatalError, so all we're doing here is ensuring that doesn't happen
             _ = XPCServer.ClientIdentity.effectiveUserID
         }
@@ -32,7 +32,7 @@ class RequestContextTest: XCTestCase {
         
         let contextValueAccessed = self.expectation(description: "Able to access effective user id")
         
-        server.registerRoute(route) {
+        server.registerRoute(route) { _ in
             // If this fails it'll fatalError, so all we're doing here is ensuring that doesn't happen
             _ = XPCServer.ClientIdentity.effectiveUserID
             contextValueAccessed.fulfill()
@@ -49,7 +49,7 @@ class RequestContextTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(route) { () async -> Void in
+        server.registerRoute(route) { (XPCConnectionToken) async -> Void in
             XCTAssertNotNil(XPCServer.ClientIdentity.effectiveGroupID)
         }
         server.start()
@@ -64,7 +64,7 @@ class RequestContextTest: XCTestCase {
         
         let contextValueAccessed = self.expectation(description: "Able to access effective group id")
         
-        server.registerRoute(route) {
+        server.registerRoute(route) { _ in
             // If this fails it'll fatalError, so all we're doing here is ensuring that doesn't happen
             _ = XPCServer.ClientIdentity.effectiveGroupID
             contextValueAccessed.fulfill()
@@ -81,7 +81,7 @@ class RequestContextTest: XCTestCase {
         let server = XPCServer.makeAnonymous()
         let client = XPCClient.forEndpoint(server.endpoint)
         
-        server.registerRoute(route) { () async -> Void in
+        server.registerRoute(route) { (XPCConnectionToken) async -> Void in
             XCTAssertNotNil(XPCServer.ClientIdentity.code)
             var staticCode: SecStaticCode?
             SecCodeCopyStaticCode(XPCServer.ClientIdentity.code!, [], &staticCode)
@@ -101,7 +101,7 @@ class RequestContextTest: XCTestCase {
         
         let clientCodeNotNil = self.expectation(description: "Client code should not be nil in this circumstance")
         
-        server.registerRoute(route) {
+        server.registerRoute(route) { _ in
             if let clientCode = XPCServer.ClientIdentity.code {
                 clientCodeNotNil.fulfill()
                 var staticCode: SecStaticCode?

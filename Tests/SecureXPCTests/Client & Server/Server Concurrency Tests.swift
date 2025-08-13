@@ -18,14 +18,14 @@ class ServerConcurrencyTests: XCTestCase {
         
         let route1 = XPCRoute.named("1").withReplyType(Int.self)
         let route1Sleep = 0.1
-        server.registerRoute(route1) {
+        server.registerRoute(route1) { _ in
             Thread.sleep(forTimeInterval: route1Sleep)
             
             return 1
         }
         let route2 = XPCRoute.named("2").withReplyType(Int.self)
         let route2Sleep = 0.2
-        server.registerRoute(route2) {
+        server.registerRoute(route2) { _ in
             Thread.sleep(forTimeInterval: route2Sleep)
             
             return 2
@@ -51,14 +51,14 @@ class ServerConcurrencyTests: XCTestCase {
         
         let route1 = XPCRoute.named("1").withReplyType(Int.self)
         let route1Sleep = 0.1
-        server.registerRoute(route1) {
+        server.registerRoute(route1) { _ in
             Thread.sleep(forTimeInterval: route1Sleep)
             
             return 1
         }
         let route2 = XPCRoute.named("2").withReplyType(Int.self)
         let route2Sleep = 0.2
-        server.registerRoute(route2) {
+        server.registerRoute(route2) { _ in
             Thread.sleep(forTimeInterval: route2Sleep)
             
             return 2
