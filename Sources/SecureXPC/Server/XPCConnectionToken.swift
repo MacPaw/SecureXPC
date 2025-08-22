@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct XPCConnectionToken {
+public struct XPCConnectionToken: Hashable {
 
     public let id: UUID
     public let clientPID: pid_t
