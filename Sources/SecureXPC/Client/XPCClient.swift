@@ -119,6 +119,22 @@ import Foundation
 /// will terminate the sequence. If the sequence completed successfully then ``SequentialResult/finished`` will be passed. Whether a sequence ever
 /// completes is determined by the implementation registered with the server or if a client side error occurs during decoding.
 ///
+/// ### Invalidating the Client
+/// An active `XPCClient` is intentionally kept in memory by its underlying connection. To explicitly terminate the
+/// current connection and break this memory retain cycle, call the `invalidate()` method. A critical connection error,
+/// such as the server process crashing, will also automatically break this cycle.
+///
+/// > Important: Due to the client's lazy connection logic, sending a new request after calling `invalidate()` will
+/// > create a new connection, which will once again keep the client in memory.
+///
+/// ```swift
+/// let client = XPCClient.forXPCService(named: "com.example.myapp.service")
+/// // ... use the client
+///
+/// // Terminate the current connection
+/// client.invalidate()
+/// ```
+///
 /// ## Topics
 /// ### Retrieving a Client
 /// - ``forXPCService(named:)``
@@ -169,7 +185,34 @@ public class XPCClient {
     internal func createConnection() -> xpc_connection_t {
         fatalError("Abstract Method")
     }
-    
+
+	// MARK: Lifecycle
+
+	/// Terminates the current connection to the server.
+	///
+	/// By design, an active `XPCClient` is kept alive by a strong reference cycle
+	/// with its underlying system connection. This method breaks the cycle for the
+	/// *current* connection, allowing it to be terminated.
+	///
+	/// > Important: Due to the lazy nature of the client, making a new request
+	/// > (e.g., via `send` or `sendMessage`) after calling this method will create a
+	/// > new connection. This new connection will re-establish the retain cycle,
+	/// > once again keeping the client in memory until the new connection is
+	/// > invalidated.
+	///
+	/// Calling this method when no connection is active has no effect.
+	public func invalidate() {
+		guard let connection else {
+			return
+		}
+		self.connection = nil
+
+		// Cancel the underlying system connection. This will trigger the event handler
+		// with an XPC_ERROR_CONNECTION_INVALID event, breaking the retain cycle
+		// and notifying any in-progress handlers of the failure.
+		xpc_connection_cancel(connection)
+	}
+
     // MARK: Send
     
     /// Receives the result of a request.
