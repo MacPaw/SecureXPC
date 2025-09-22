@@ -104,6 +104,23 @@ import Foundation
 /// handling a request from a client, there is a possibility that a subsequent request will be received by the server process before termination has completed meaning
 /// it will nearly instantly fail with an ``XPCError/connectionInterrupted`` error. Allow launchd to automatically manage the lifecycle of your service.
 ///
+/// ### Invalidating a Server
+/// While it's recommended to allow `launchd` to manage the lifecycle of your service, a
+/// server can be manually invalidated if needed. This is particularly useful for XPC Mach
+/// services that are managed as shared, cached instances.
+///
+/// Invalidating a server will gracefully terminate all of its active client connections
+/// and remove it from the internal cache, allowing it to be deallocated.
+///
+/// ```swift
+/// let serviceName = "com.example.helper.service"
+/// // ... at some point, the server is retrieved and started
+/// try XPCServer.forMachService(named: serviceName)
+///
+/// // Later, when you need to shut down the service:
+/// XPCServer.invalidateMachService(named: serviceName)
+/// ```
+///
 /// ## Topics
 /// ### Retrieving a Server
 /// - ``forThisXPCService()``
@@ -160,7 +177,16 @@ public class XPCServer {
         self.clientRequirement = clientRequirement
         self.registerPackageInternalRoutes()
     }
-    
+
+	// MARK: Lifecycle
+
+	/// Invalidates the server, stops it from accepting new connections, and disconnects all clients.
+	///
+	/// This method is for internal use within the library.
+	internal func invalidate() {
+		fatalError("Abstract Method: This must be overridden by a subclass.")
+	}
+
     // MARK: Route registration
     
     private var routes = [XPCRoute : XPCHandler]()
@@ -636,6 +662,23 @@ extension XPCServer {
     ) throws -> XPCServer & XPCNonBlockingServer {
         try XPCMachServer.getXPCMachServer(criteria: criteria)
     }
+}
+
+// MARK: Server Lifecycle Management
+
+extension XPCServer {
+	/// Finds and invalidates a cached XPC Mach service server by its name.
+	///
+	/// This is the designated public method for shutting down a shared Mach service.
+	/// It ensures the server is safely removed from the cache and that its underlying
+	/// listener connection is terminated.
+	///
+	/// If no server with the given name is currently active in the cache, this method does nothing.
+	///
+	/// - Parameter machServiceName: The name of the Mach service to invalidate.
+	public static func invalidateMachService(named machServiceName: String) {
+		XPCMachServer.invalidateServer(named: machServiceName)
+	}
 }
 
 // MARK: handler function wrappers

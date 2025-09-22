@@ -43,7 +43,13 @@ internal class XPCMachServer: XPCServer {
         })
         xpc_connection_resume(self.listenerConnection)
     }
-    
+
+	internal override func invalidate() {
+		self.listenerQueue.sync {
+			xpc_connection_cancel(self.listenerConnection)
+		}
+	}
+
     public override func startAndBlock() -> Never {
         self.start()
 
@@ -118,4 +124,20 @@ extension XPCMachServer {
             return server
         }
     }
+
+	/// Finds a cached server by its Mach service name, invalidates it and removes it from cache.
+	///
+	/// This provides a thread-safe way to shut down a specific, shared server instance
+	/// from anywhere in the application. If no server with the given name is found
+	/// in the cache, this method does nothing.
+	///
+	/// - Parameter machServiceName: The name of the Mach service server to invalidate.
+	internal static func invalidateServer(named machServiceName: String) {
+		serialQueue.sync {
+			if let cachedServer = machServerCache[machServiceName] {
+				machServerCache[machServiceName] = nil
+				cachedServer.invalidate()
+			}
+		}
+	}
 }
