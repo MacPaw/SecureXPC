@@ -109,16 +109,20 @@ import Foundation
 /// server can be manually invalidated if needed. This is particularly useful for XPC Mach
 /// services that are managed as shared, cached instances.
 ///
-/// Invalidating a server will gracefully terminate all of its active client connections
-/// and remove it from the internal cache, allowing it to be deallocated.
+/// Invalidating a server is an asynchronous operation. It gracefully terminates all
+/// active client connections and removes the server from the internal cache, allowing it
+/// to be deallocated. You can optionally provide a completion handler to be notified
+
+/// when the process is finished.
 ///
 /// ```swift
 /// let serviceName = "com.example.helper.service"
 /// // ... at some point, the server is retrieved and started
-/// try XPCServer.forMachService(named: serviceName)
 ///
-/// // Later, when you need to shut down the service:
-/// XPCServer.invalidateMachService(named: serviceName)
+/// // Later, when you need to shut down the service and wait for it to complete:
+/// XPCServer.invalidateMachService(named: serviceName, on: .main) {
+///     print("Server has been fully invalidated.")
+/// }
 /// ```
 ///
 /// ## Topics
@@ -180,10 +184,21 @@ public class XPCServer {
 
 	// MARK: Lifecycle
 
-	/// Invalidates the server, stops it from accepting new connections, and disconnects all clients.
+	/// Asynchronously invalidates the server, stopping new connections and disconnecting all clients.
 	///
-	/// This method is for internal use within the library.
-	internal func invalidate() {
+	/// This method initiates a graceful shutdown. The completion handler is called only
+	/// after the system confirms the listener has been fully invalidated.
+	///
+	/// If this method is called while an invalidation is already in progress, the new
+	/// completion handler is ignored.
+	///
+	/// - Parameters:
+	///   - queue: The dispatch queue on which to execute the completion handler.
+	///   - completion: The closure to be called when invalidation is complete.
+	internal func invalidate(
+		on queue: DispatchQueue,
+		completion: @escaping () -> Void
+	) {
 		fatalError("Abstract Method: This must be overridden by a subclass.")
 	}
 
@@ -667,17 +682,24 @@ extension XPCServer {
 // MARK: Server Lifecycle Management
 
 extension XPCServer {
-	/// Finds and invalidates a cached XPC Mach service server by its name.
+	/// Asynchronously invalidates a cached XPC Mach service server by its name.
 	///
 	/// This is the designated public method for shutting down a shared Mach service.
 	/// It ensures the server is safely removed from the cache and that its underlying
 	/// listener connection is terminated.
 	///
-	/// If no server with the given name is currently active in the cache, this method does nothing.
+	/// If no server is found, the completion handler is called immediately.
 	///
-	/// - Parameter machServiceName: The name of the Mach service to invalidate.
-	public static func invalidateMachService(named machServiceName: String) {
-		XPCMachServer.invalidateServer(named: machServiceName)
+	/// - Parameters:
+	///   - machServiceName: The name of the Mach service to invalidate.
+	///   - queue: An optional dispatch queue on which to execute the completion handler.
+	///   - completion: An optional closure to be called once the operation is complete.
+	public static func invalidateMachService(
+		named machServiceName: String,
+		on queue: DispatchQueue = .global(),
+		completion: @escaping () -> Void = { }
+	) {
+		XPCMachServer.invalidateServer(named: machServiceName, on: queue, completion: completion)
 	}
 }
 
