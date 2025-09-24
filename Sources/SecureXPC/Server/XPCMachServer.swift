@@ -11,16 +11,40 @@ import Foundation
 ///
 /// In the case of this framework, the XPC Mach service is expected to be communicated with by an `XPCMachClient`.
 internal class XPCMachServer: XPCServer {
+
+	// MARK: Nested
+
+	/// Defines the lifecycle states of the XPCMachServer.
+	private enum State {
+		/// The server has been initialized but not yet started.
+		/// Connections received in this state are held pending the call to `start()`.
+		case pending(connections: [xpc_connection_t])
+		/// The server is started and actively processing incoming connections.
+		case started
+		/// The server is shutting down and is waiting for the system to confirm the listener connection has been invalidated.
+		case invalidating(queue: DispatchQueue, completion: () -> Void)
+		/// The server has been fully invalidated.
+		case invalidated
+
+		///
+		var isInvalidating: Bool {
+			if case .invalidating = self {
+				return true
+			}
+			return false
+		}
+	}
+
+	// MARK: Properties
+
     /// Name of the service.
     private let machServiceName: String
     /// Receives new incoming connections
     private let listenerConnection: xpc_connection_t
     /// The dispatch queue used when new connections are being received
     private let listenerQueue: DispatchQueue
-    /// Whether this server has been started, if not connections are added to pendingConnections
-    private var started = false
-    /// Connections received while the server is not started
-    private var pendingConnections = [xpc_connection_t]()
+	/// The current lifecycle state of the server.
+	private var state: State = .pending(connections: [])
     
     /// This should only ever be called from `getXPCMachServer(...)` so that client requirement invariants are upheld.
     private init(criteria: MachServiceCriteria) {
@@ -34,16 +58,60 @@ internal class XPCMachServer: XPCServer {
         super.init(clientRequirement: criteria.clientRequirement)
         
         // Configure listener for new connections, all received events are incoming client connections
-        xpc_connection_set_event_handler(self.listenerConnection, { connection in
-            if self.started {
-                self.startClientConnection(connection)
-            } else {
-                self.pendingConnections.append(connection)
-            }
+        xpc_connection_set_event_handler(self.listenerConnection, { event in
+			self.listenerQueue.async {
+				if xpc_get_type(event) == XPC_TYPE_CONNECTION {
+					let clientConnection = event as xpc_connection_t
+					switch self.state {
+					case .pending(let connections):
+						self.state = .pending(connections: connections + [clientConnection])
+					case .started:
+						self.startClientConnection(clientConnection)
+					default:
+						// Cancels any new connections that might arrive during invalidation
+						xpc_connection_cancel(clientConnection)
+					}
+				} else if xpc_get_type(event) == XPC_TYPE_ERROR {
+					// The only EXPECTED error is `XPC_ERROR_CONNECTION_INVALID` when we are already invalidating.
+					if !(self.state.isInvalidating && xpc_equal(event, XPC_ERROR_CONNECTION_INVALID)) {
+						let xpcError = XPCError.fromXPCObject(event)
+						self.errorHandler.handle(xpcError, nil)
+					}
+
+					if case let .invalidating(queue, completion) = self.state {
+						self.state = .invalidated
+						queue.async { completion() }
+					} else {
+						// In all error cases, the listener is now dead. Move to the final state.
+						self.state = .invalidated
+					}
+				}
+			}
         })
         xpc_connection_resume(self.listenerConnection)
     }
-    
+
+	internal override func invalidate(
+		on queue: DispatchQueue,
+		completion: @escaping () -> Void
+	) {
+		self.listenerQueue.sync {
+			// Only proceed if the server is in a state that can be invalidated
+			switch self.state {
+			case .pending, .started:
+				// The final transition to `.invalidated` will happen in the event handler
+				self.state = .invalidating(queue: queue, completion: completion)
+				xpc_connection_cancel(self.listenerConnection)
+			case .invalidated:
+				// If already invalidated, complete immediately.
+				queue.async { completion() }
+			case .invalidating:
+				// An invalidation is already in progress, ignore this new request.
+				break
+			}
+		}
+	}
+
     public override func startAndBlock() -> Never {
         self.start()
 
@@ -62,13 +130,18 @@ internal class XPCMachServer: XPCServer {
 }
 
 extension XPCMachServer: XPCNonBlockingServer {
+	/// Transitions the server to the started state and processes any pending connections.
+	///
+	/// This method performs a one-time transition from the `.pending` to the `.started` state.
+	/// Calling it on a server that is already started or has been invalidated will have no effect.
     public func start() {
         self.listenerQueue.sync {
-            self.started = true
-            for connection in self.pendingConnections {
-                self.startClientConnection(connection)
-            }
-            self.pendingConnections.removeAll()
+			if case let .pending(connections) = self.state {
+				self.state = .started
+				for connection in connections {
+					self.startClientConnection(connection)
+				}
+			}
         }
     }
 }
@@ -118,4 +191,33 @@ extension XPCMachServer {
             return server
         }
     }
+
+	/// Asynchronously invalidates a cached server by its Mach service name and removes it from the cache.
+	///
+	/// This provides a thread-safe way to shut down a specific, shared server instance.
+	/// The completion handler is called after the server has been removed from the cache and its
+	/// asynchronous invalidation process has been initiated.
+	///
+	/// If no server with the given name is found, the completion handler is called immediately.
+	///
+	/// - Parameters:
+	///   - machServiceName: The name of the Mach service server to invalidate.
+	///   - queue: The dispatch queue on which to execute the completion handler.
+	///   - completion: The closure to be called once the operation is complete.
+	internal static func invalidateServer(
+		named machServiceName: String,
+		on queue: DispatchQueue,
+		completion: @escaping () -> Void
+	) {
+		serialQueue.async {
+			if let cachedServer = machServerCache[machServiceName] {
+				cachedServer.invalidate(on: serialQueue) {
+					machServerCache[machServiceName] = nil
+					queue.async { completion() }
+				}
+			} else {
+				queue.async { completion() }
+			}
+		}
+	}
 }

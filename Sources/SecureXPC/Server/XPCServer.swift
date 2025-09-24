@@ -104,6 +104,27 @@ import Foundation
 /// handling a request from a client, there is a possibility that a subsequent request will be received by the server process before termination has completed meaning
 /// it will nearly instantly fail with an ``XPCError/connectionInterrupted`` error. Allow launchd to automatically manage the lifecycle of your service.
 ///
+/// ### Invalidating a Server
+/// While it's recommended to allow `launchd` to manage the lifecycle of your service, a
+/// server can be manually invalidated if needed. This is particularly useful for XPC Mach
+/// services that are managed as shared, cached instances.
+///
+/// Invalidating a server is an asynchronous operation. It gracefully terminates all
+/// active client connections and removes the server from the internal cache, allowing it
+/// to be deallocated. You can optionally provide a completion handler to be notified
+
+/// when the process is finished.
+///
+/// ```swift
+/// let serviceName = "com.example.helper.service"
+/// // ... at some point, the server is retrieved and started
+///
+/// // Later, when you need to shut down the service and wait for it to complete:
+/// XPCServer.invalidateMachService(named: serviceName, on: .main) {
+///     print("Server has been fully invalidated.")
+/// }
+/// ```
+///
 /// ## Topics
 /// ### Retrieving a Server
 /// - ``forThisXPCService()``
@@ -160,7 +181,27 @@ public class XPCServer {
         self.clientRequirement = clientRequirement
         self.registerPackageInternalRoutes()
     }
-    
+
+	// MARK: Lifecycle
+
+	/// Asynchronously invalidates the server, stopping new connections and disconnecting all clients.
+	///
+	/// This method initiates a graceful shutdown. The completion handler is called only
+	/// after the system confirms the listener has been fully invalidated.
+	///
+	/// If this method is called while an invalidation is already in progress, the new
+	/// completion handler is ignored.
+	///
+	/// - Parameters:
+	///   - queue: The dispatch queue on which to execute the completion handler.
+	///   - completion: The closure to be called when invalidation is complete.
+	internal func invalidate(
+		on queue: DispatchQueue,
+		completion: @escaping () -> Void
+	) {
+		fatalError("Abstract Method: This must be overridden by a subclass.")
+	}
+
     // MARK: Route registration
     
     private var routes = [XPCRoute : XPCHandler]()
@@ -636,6 +677,30 @@ extension XPCServer {
     ) throws -> XPCServer & XPCNonBlockingServer {
         try XPCMachServer.getXPCMachServer(criteria: criteria)
     }
+}
+
+// MARK: Server Lifecycle Management
+
+extension XPCServer {
+	/// Asynchronously invalidates a cached XPC Mach service server by its name.
+	///
+	/// This is the designated public method for shutting down a shared Mach service.
+	/// It ensures the server is safely removed from the cache and that its underlying
+	/// listener connection is terminated.
+	///
+	/// If no server is found, the completion handler is called immediately.
+	///
+	/// - Parameters:
+	///   - machServiceName: The name of the Mach service to invalidate.
+	///   - queue: An optional dispatch queue on which to execute the completion handler.
+	///   - completion: An optional closure to be called once the operation is complete.
+	public static func invalidateMachService(
+		named machServiceName: String,
+		on queue: DispatchQueue = .global(),
+		completion: @escaping () -> Void = { }
+	) {
+		XPCMachServer.invalidateServer(named: machServiceName, on: queue, completion: completion)
+	}
 }
 
 // MARK: handler function wrappers
