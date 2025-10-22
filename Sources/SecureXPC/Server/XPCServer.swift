@@ -453,27 +453,10 @@ public class XPCServer {
                         try handler.handle(request: request, server: self, connection: connection, reply: &reply)
                         try self.maybeSendReply(&reply, request: request, connection: connection)
                     } catch {
-						guard !handler.shouldCreateReply else {
+						if handler.shouldCreateReply {
 							self.handleError(error, request: request, connection: connection, reply: &reply)
-							return
-						}
-
-						let error = XPCError.asXPCError(error: error)
-						self.errorHandler.handle(error, connection.token)
-
-						// If it's possible to reply, then send the error back to the client
-						do {
-							var response = xpc_dictionary_create(nil, nil, 0)
-							try Response.encodeRequestID(request.requestID, intoReply: &response)
-							try Response.encodeError(error, intoReply: &response)
-							xpc_connection_send_message(connection, response)
-
-							// End Transaction
-							if let reply = xpc_dictionary_create_reply(message) {
-								xpc_connection_send_message(connection, reply)
-							}
-						} catch {
-							// If these actions fail, then there's no way to proceed
+						} else {
+							self.handleError(error, request: request, connection: connection)
 						}
                     }
                 }
@@ -498,27 +481,10 @@ public class XPCServer {
                         try await handler.handle(request: request, server: self, connection: connection, reply: &reply)
                         try self.maybeSendReply(&reply, request: request, connection: connection)
                     } catch {
-						guard !handler.shouldCreateReply else {
+						if handler.shouldCreateReply {
 							self.handleError(error, request: request, connection: connection, reply: &reply)
-							return
-						}
-
-						let error = XPCError.asXPCError(error: error)
-						self.errorHandler.handle(error, connection.token)
-
-						// If it's possible to reply, then send the error back to the client
-						do {
-							var response = xpc_dictionary_create(nil, nil, 0)
-							try Response.encodeRequestID(request.requestID, intoReply: &response)
-							try Response.encodeError(error, intoReply: &response)
-							xpc_connection_send_message(connection, response)
-
-							// End Transaction
-							if let reply = xpc_dictionary_create_reply(message) {
-								xpc_connection_send_message(connection, reply)
-							}
-						} catch {
-							// If these actions fail, then there's no way to proceed
+						} else {
+							self.handleError(error, request: request, connection: connection)
 						}
                     }
                 }
@@ -570,7 +536,31 @@ public class XPCServer {
             }
         }
     }
-    
+
+	private func handleError(
+		_ error: Error,
+		request: Request,
+		connection: xpc_connection_t
+	) {
+		let error = XPCError.asXPCError(error: error)
+		self.errorHandler.handle(error, connection.token)
+
+		// If it's possible to reply, then send the error back to the client
+		do {
+			var response = xpc_dictionary_create(nil, nil, 0)
+			try Response.encodeRequestID(request.requestID, intoReply: &response)
+			try Response.encodeError(error, intoReply: &response)
+			xpc_connection_send_message(connection, response)
+
+			// End Transaction
+			if let reply = xpc_dictionary_create_reply(request.dictionary) {
+				xpc_connection_send_message(connection, reply)
+			}
+		} catch {
+			// If these actions fail, then there's no way to proceed
+		}
+	}
+
     /// Tries to send a reply if the `reply` and `request` objects aren't nil.
     private func maybeSendReply(_ reply: inout xpc_object_t?, request: Request?, connection: xpc_connection_t) throws {
         if var reply = reply, let request = request {
