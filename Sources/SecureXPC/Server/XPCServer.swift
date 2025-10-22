@@ -448,13 +448,16 @@ public class XPCServer {
             // concurrent. (Although if an API user sets the target queue to be serial that's supported too.)
             self.handlerQueue.async {
                 XPCServer.ClientIdentity.setForCurrentThread(connection: connection, message: message) {
-                    var reply = handler.shouldCreateReply ? xpc_dictionary_create_reply(message) : nil
+					var reply = handler.shouldCreateReply ? xpc_dictionary_create_reply(message) : nil
                     do {
                         try handler.handle(request: request, server: self, connection: connection, reply: &reply)
                         try self.maybeSendReply(&reply, request: request, connection: connection)
                     } catch {
-                        var reply = handler.shouldCreateReply ? reply : xpc_dictionary_create_reply(message)
-                        self.handleError(error, request: request, connection: connection, reply: &reply)
+						if handler.shouldCreateReply {
+							self.handleError(error, request: request, connection: connection, reply: &reply)
+						} else {
+							self.handleError(error, request: request, connection: connection)
+						}
                     }
                 }
             }
@@ -478,8 +481,11 @@ public class XPCServer {
                         try await handler.handle(request: request, server: self, connection: connection, reply: &reply)
                         try self.maybeSendReply(&reply, request: request, connection: connection)
                     } catch {
-                        var reply = handler.shouldCreateReply ? reply : xpc_dictionary_create_reply(message)
-                        self.handleError(error, request: request, connection: connection, reply: &reply)
+						if handler.shouldCreateReply {
+							self.handleError(error, request: request, connection: connection, reply: &reply)
+						} else {
+							self.handleError(error, request: request, connection: connection)
+						}
                     }
                 }
             }
@@ -530,7 +536,31 @@ public class XPCServer {
             }
         }
     }
-    
+
+	private func handleError(
+		_ error: Error,
+		request: Request,
+		connection: xpc_connection_t
+	) {
+		let error = XPCError.asXPCError(error: error)
+		self.errorHandler.handle(error, connection.token)
+
+		// If it's possible to reply, then send the error back to the client
+		do {
+			var response = xpc_dictionary_create(nil, nil, 0)
+			try Response.encodeRequestID(request.requestID, intoReply: &response)
+			try Response.encodeError(error, intoReply: &response)
+			xpc_connection_send_message(connection, response)
+
+			// End Transaction
+			if let reply = xpc_dictionary_create_reply(request.dictionary) {
+				xpc_connection_send_message(connection, reply)
+			}
+		} catch {
+			// If these actions fail, then there's no way to proceed
+		}
+	}
+
     /// Tries to send a reply if the `reply` and `request` objects aren't nil.
     private func maybeSendReply(_ reply: inout xpc_object_t?, request: Request?, connection: xpc_connection_t) throws {
         if var reply = reply, let request = request {
@@ -850,8 +880,8 @@ fileprivate struct ConstrainedXPCHandlerWithMessageWithSequentialReplySync<M: De
 
     func handle(request: Request, server: XPCServer, connection: xpc_connection_t, reply: inout xpc_object_t?) throws {
         try checkRequest(request, reply: &reply, messageType: M.self, replyType: nil, sequentialReplyType: S.self)
-        let sequenceProvider = SequentialResultProvider<S>(request: request, server: server, connection: connection)
         let decodedMessage = try request.decodePayload(asType: M.self)
+		let sequenceProvider = SequentialResultProvider<S>(request: request, server: server, connection: connection)
         self.handler(connection.token, decodedMessage, sequenceProvider)
     }
 }
