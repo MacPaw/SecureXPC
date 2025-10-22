@@ -55,10 +55,10 @@ public extension XPCServer {
         ) rethrows -> R {
             Thread.current.threadDictionary[contextKey] = XPCServer.ClientIdentity(connection: connection,
                                                                                    message: message)
-            let result = try operation()
-            Thread.current.threadDictionary.removeObject(forKey: contextKey)
+
+            defer { Thread.current.threadDictionary.removeObject(forKey: contextKey) }
             
-            return result
+            return try operation()
         }
         
         // MARK: current context
