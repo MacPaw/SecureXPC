@@ -171,7 +171,17 @@ internal class XPCUnkeyedEncodingContainer : UnkeyedEncodingContainer, XPCContai
 		self.append(xpc_uint64_create(value))
 	}
 
+    func encode(_ value: XPCRawEncodable) throws {
+        self.attemptDataBackedAppend(value)
+        try self.append(value.xpcRawValue(codingPath: codingPath))
+    }
+
 	func encode<T: Encodable>(_ value: T) throws {
+        if let castedValue = value as? XPCRawEncodable {
+            try encode(castedValue)
+            return
+        }
+
         self.attemptDataBackedAppend(value)
         
 		let encoder = XPCEncoderImpl(codingPath: self.codingPath)

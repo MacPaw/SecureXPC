@@ -12,7 +12,7 @@ import SecureXPC
 final class DataOptimizedForXPCTests: XCTestCase {
     struct Info: Codable {
         let description: String
-        @DataOptimizedForXPC var data: Data
+        var data: Data
     }
     
     func testRoundTrip() async throws {

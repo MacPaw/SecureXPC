@@ -7,57 +7,11 @@
 
 import Foundation
 
-/// Wraps an array to optimize how it is sent over an XPC connection.
+/// Utilities for easier array mapping to data and vice versa
 ///
 /// Arrays of the following type are automatically supported by this property wrapper: `Bool`, `Double`, `Float`, `UInt`, `UInt8`, `UInt16`, `UInt32`,
 /// `UInt64`, `Int`, `Int8`, `Int16`, `Int32`, and `Int64`. You may add support for your own trivial types by having them conform to ``Trivial``.
 ///
-/// Usage of this property wrapper is never required and has no benefit when the array is either the message or reply type for an ``XPCRoute``.  When transferring
-/// a type which _contains_ an array property it is more efficient both in runtime and memory usage to wrap it using this property wrapper.
-@propertyWrapper public struct ArrayOptimizedForXPC<Element: Trivial & Codable> {
-    // Note: There's no actual need for Element to conform to Codable, but doing so provides consistency between arrays
-    // which are wrapped with this property wrapper vs those that are not. Also it's easy for most trivial types to
-    // become Codable conforming simplying by declaring conformance; the compiler will autogenerate the implementation.
-    
-    public var wrappedValue: [Element]
-    
-    public init(wrappedValue: [Element]) {
-        self.wrappedValue = wrappedValue
-    }
-}
-
-// MARK: Codable
-
-extension ArrayOptimizedForXPC: Encodable {
-    public func encode(to encoder: Encoder) throws {
-        let xpcEncoder = try XPCEncoderImpl.asXPCEncoderImpl(encoder)
-        guard let data = encodeArrayAsData(value: self.wrappedValue) else {
-            let debugDescription = "Unable to encode \(self.wrappedValue.self) to XPC data represetation"
-            let context = EncodingError.Context(codingPath: encoder.codingPath,
-                                                debugDescription: debugDescription,
-                                                underlyingError: nil)
-            throw EncodingError.invalidValue(self.wrappedValue, context)
-        }
-        
-        xpcEncoder.xpcSingleValueContainer().setAlreadyEncodedValue(data)
-    }
-}
-
-extension ArrayOptimizedForXPC: Decodable {
-    public init(from decoder: Decoder) throws {
-        let xpcDecoder = try XPCDecoderImpl.asXPCDecoderImpl(decoder)
-        let container = xpcDecoder.xpcSingleValueContainer()
-        guard let array = decodeDataAsArray(arrayType: [Element].self, arrayAsData: container.value) else {
-            let debugDescription = "Unable to decode \(container.value.description) to an array of type \(Element.self)"
-            let context = DecodingError.Context(codingPath: container.codingPath,
-                                                debugDescription: debugDescription,
-                                                underlyingError: nil)
-            throw DecodingError.dataCorrupted(context)
-        }
-        
-        self.wrappedValue = array
-    }
-}
 
 // MARK: Helper functions
 

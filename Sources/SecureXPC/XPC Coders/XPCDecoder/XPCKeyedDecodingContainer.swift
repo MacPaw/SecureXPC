@@ -135,6 +135,10 @@ internal class XPCKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerPr
 	}
 
 	func decode<T>(_ type: T.Type, forKey key: K) throws -> T where T : Decodable {
+        if let castedType = type as? XPCRawDecodable.Type {
+            let value = try value(forKey: key)
+            return try castedType.init(xpcRawValue: value, codingPath: self.codingPath) as! T
+        }
 		return try type.init(from: XPCDecoderImpl(value: value(forKey: key),
 												  codingPath: self.codingPath + [key],
                                                   userInfo: self.userInfo))

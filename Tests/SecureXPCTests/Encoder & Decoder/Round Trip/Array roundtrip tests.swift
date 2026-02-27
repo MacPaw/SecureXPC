@@ -10,6 +10,23 @@ import XCTest
 
 final class XPCArrayRoundTripTests: XCTestCase {
 
+    static var bigArray: [UInt8]!
+    static var bigArrayCount = 2 * 1024 * 1024
+
+    var bigArray: [UInt8] { Self.bigArray }
+
+    override class func setUp() {
+        super.setUp()
+
+        bigArray = (0..<bigArrayCount).map { _ in UInt8.random(in: 0...UInt8.max) }
+    }
+
+    override class func tearDown() {
+        super.tearDown()
+
+        bigArray = nil
+    }
+
     // MARK: Empty array
     func testRoundTrip_arrayOf_Nothing() throws {
         try assertRoundTripEqual([Int]())
@@ -172,5 +189,31 @@ final class XPCArrayRoundTripTests: XCTestCase {
             ["e": 4, "f": 5, "g": 6],
         ]
         try assertRoundTripEqual(arrayOfDicts)
+    }
+
+    func test_bigArrayAsProperty() throws {
+
+        struct StructWithArrayAsProperty: Codable, Equatable {
+            let values: [UInt8]
+            let text: String
+            let number: Int
+        }
+
+        let structure = StructWithArrayAsProperty(values: bigArray, text: "STUB_TEXT", number: 35)
+
+        try assertRoundTripEqual(structure)
+    }
+
+    func test_bigArrayAsItemOfArray() throws {
+
+        struct StructWithArrayOfArrayAsProperty: Codable, Equatable {
+            let values: [[UInt8]]
+            let text: String
+            let number: Int
+        }
+
+        let structure = StructWithArrayOfArrayAsProperty(values: [bigArray], text: "STUB_TEXT", number: 35)
+
+        try assertRoundTripEqual(structure)
     }
 }

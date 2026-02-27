@@ -113,11 +113,19 @@ internal class XPCKeyedEncodingContainer<K>: KeyedEncodingContainerProtocol, XPC
 		self.setValue(xpc_uint64_create(value), forKey: key)
 	}
 
-	func encode<T>(_ value: T, forKey key: K) throws where T : Encodable {
-		let encoder = XPCEncoderImpl(codingPath: self.codingPath + [key])
-		self.setValue(encoder, forKey: key)
+    func encode(_ value: XPCRawEncodable, forKey key: K) throws {
+        try self.setValue(value.xpcRawValue(codingPath: codingPath), forKey: key)
+    }
 
-		try value.encode(to: encoder)
+	func encode<T>(_ value: T, forKey key: K) throws where T : Encodable {
+        if let castedType = value as? XPCRawEncodable {
+            try encode(castedType, forKey: key)
+        } else {
+            let encoder = XPCEncoderImpl(codingPath: self.codingPath + [key])
+            self.setValue(encoder, forKey: key)
+            
+            try value.encode(to: encoder)
+        }
 	}
 
 	func nestedContainer<NestedKey>(
