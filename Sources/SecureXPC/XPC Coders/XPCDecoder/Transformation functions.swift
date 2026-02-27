@@ -73,19 +73,6 @@ internal func stringTransform(codingPath: [CodingKey]) -> ((xpc_object_t) throws
 	}
 }
 
-internal func dataTransform(codingPath: [CodingKey]) -> ((xpc_object_t) throws -> Data) {
-    return { (object: xpc_object_t) in
-        let dataLength = xpc_data_get_length(object)
-        guard let dataPointer = xpc_data_get_bytes_ptr(object) else {
-            let context = DecodingError.Context(codingPath: codingPath,
-                                                debugDescription: "Unable to decode data",
-                                                underlyingError: nil)
-            throw DecodingError.dataCorrupted(context)
-        }
-        return Data(bytes: dataPointer, count: dataLength)
-    }
-}
-
 internal let floatTransform = { (object: xpc_object_t) -> Float in
 	// Double.signalingNaN is not converted to Float.signalingNaN when calling Float(...) with a Double so this needs
 	// to be done manually
