@@ -167,23 +167,6 @@ final class XPCDecoder_DictionaryEncodingTests: XCTestCase {
 
 	// MARK: Dictionaries of aggregates
 
-    // This would not work anymore because arrays with Trivial types
-    // converted into Data and then to xpc data instead of xpc array
-
-//	func testDecode_dictOf_Arrays() throws {
-//		// There's too many possible permutations, but it should be satisfactory to just test one kind of nesting.
-//		let expectedResultDictOfArrays: [String: [Int64]] = [
-//			"a1": [1, 2, 3],
-//			"a2": [4, 5, 6],
-//		]
-//
-//		let inputXPCDict = createXPCDict(from: expectedResultDictOfArrays, using: { array in
-//			createXPCArray(from: array, using: xpc_int64_create)
-//		})
-//
-//		try assert(inputXPCDict, decodesEqualTo: expectedResultDictOfArrays)
-//	}
-
 	func testDecode_dictOf_Dicts() throws {
 		// There's too many possible permutations, but it should be satisfactory to just test one kind of nesting.
 		let expectedResultDictOfDicts: [String: [String: Int64]] = [
