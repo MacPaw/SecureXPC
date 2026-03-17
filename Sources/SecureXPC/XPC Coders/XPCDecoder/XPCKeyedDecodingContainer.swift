@@ -137,11 +137,18 @@ internal class XPCKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerPr
 	func decode<T>(_ type: T.Type, forKey key: K) throws -> T where T : Decodable {
         if let castedType = type as? XPCRawDecodable.Type {
             let value = try value(forKey: key)
-            return try castedType.init(xpcRawValue: value, codingPath: self.codingPath) as! T
+            guard let decodedType = castedType.init(xpcRawValue: value) as? T else {
+                let context = DecodingError.Context(codingPath: codingPath,
+                                                    debugDescription: "Unable to decode array",
+                                                    underlyingError: nil)
+                throw DecodingError.dataCorrupted(context)
+            }
+            return decodedType
+        } else {
+            return try type.init(from: XPCDecoderImpl(value: value(forKey: key),
+                                                      codingPath: self.codingPath + [key],
+                                                      userInfo: self.userInfo))
         }
-		return try type.init(from: XPCDecoderImpl(value: value(forKey: key),
-												  codingPath: self.codingPath + [key],
-                                                  userInfo: self.userInfo))
 	}
 
 	func nestedContainer<NestedKey>(

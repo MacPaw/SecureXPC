@@ -171,22 +171,25 @@ internal class XPCUnkeyedEncodingContainer : UnkeyedEncodingContainer, XPCContai
 		self.append(xpc_uint64_create(value))
 	}
 
-    func encode(_ value: XPCRawEncodable) throws {
-        self.attemptDataBackedAppend(value)
-        try self.append(value.xpcRawValue(codingPath: codingPath))
-    }
-
 	func encode<T: Encodable>(_ value: T) throws {
         if let castedValue = value as? XPCRawEncodable {
-            try encode(castedValue)
+            self.attemptDataBackedAppend(castedValue)
+            guard let encodedValue = castedValue.xpcRawValue() else {
+                let debugDescription = "Unable to encode \(self.self) to XPC data representation"
+                let context = EncodingError.Context(codingPath: codingPath,
+                                                    debugDescription: debugDescription,
+                                                    underlyingError: nil)
+                throw EncodingError.invalidValue(self, context)
+            }
+            self.append(encodedValue)
             return
-        }
+        } else {
+            self.attemptDataBackedAppend(value)
 
-        self.attemptDataBackedAppend(value)
-        
-		let encoder = XPCEncoderImpl(codingPath: self.codingPath)
-		self.append(encoder)
-		try value.encode(to: encoder)
+            let encoder = XPCEncoderImpl(codingPath: self.codingPath)
+            self.append(encoder)
+            try value.encode(to: encoder)
+        }
 	}
 
 	func nestedContainer<NestedKey>(
