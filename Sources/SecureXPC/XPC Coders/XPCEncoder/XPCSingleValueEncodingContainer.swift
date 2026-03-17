@@ -95,10 +95,21 @@ internal class XPCSingleValueEncodingContainer: SingleValueEncodingContainer, XP
 	}
 
 	func encode<T: Encodable>(_ value: T) throws {
-		let encoder = XPCEncoderImpl(codingPath: self.codingPath)
-		self.setValue(encoder)
-
-		try value.encode(to: encoder)
+        if let castedValue = value as? XPCRawEncodable {
+            guard let encodedValue = castedValue.xpcRawValue() else {
+                let debugDescription = "Unable to encode \(self.self) to XPC data representation"
+                let context = EncodingError.Context(codingPath: codingPath,
+                                                    debugDescription: debugDescription,
+                                                    underlyingError: nil)
+                throw EncodingError.invalidValue(self, context)
+            }
+            self.setValue(encodedValue)
+        } else {
+            let encoder = XPCEncoderImpl(codingPath: self.codingPath)
+            self.setValue(encoder)
+            
+            try value.encode(to: encoder)
+        }
 	}
     
     // MARK: XPC specific encoding
