@@ -8,6 +8,8 @@
 import Foundation
 @testable import SecureXPC
 
+// This is a testing structure for single value container coder/decoder
+
 struct TestDataStruct: Codable, Equatable {
     let data: Data
 
