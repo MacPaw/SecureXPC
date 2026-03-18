@@ -113,21 +113,10 @@ internal class XPCKeyedEncodingContainer<K>: KeyedEncodingContainerProtocol, XPC
 		self.setValue(xpc_uint64_create(value), forKey: key)
 	}
 
-    func encode(_ value: XPCRawEncodable, forKey key: K) throws {
-        guard let encodedValue = value.xpcRawValue() else {
-            let debugDescription = "Unable to encode \(self.self) to XPC data representation"
-            let context = EncodingError.Context(codingPath: codingPath,
-                                                debugDescription: debugDescription,
-                                                underlyingError: nil)
-            throw EncodingError.invalidValue(self, context)
-        }
-        self.setValue(encodedValue, forKey: key)
-    }
-
 	func encode<T>(_ value: T, forKey key: K) throws where T : Encodable {
         if let castedType = value as? XPCRawEncodable {
             guard let encodedValue = castedType.xpcRawValue() else {
-                let debugDescription = "Unable to encode \(self.self) to XPC data representation"
+                let debugDescription = "Unable to encode \(value.self)"
                 let context = EncodingError.Context(codingPath: codingPath,
                                                     debugDescription: debugDescription,
                                                     underlyingError: nil)

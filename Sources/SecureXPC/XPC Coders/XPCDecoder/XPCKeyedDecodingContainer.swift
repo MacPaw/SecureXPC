@@ -139,7 +139,7 @@ internal class XPCKeyedDecodingContainer<K: CodingKey>: KeyedDecodingContainerPr
             let value = try value(forKey: key)
             guard let decodedType = castedType.init(xpcRawValue: value) as? T else {
                 let context = DecodingError.Context(codingPath: codingPath,
-                                                    debugDescription: "Unable to decode array",
+                                                    debugDescription: "Unable to decode \(type))",
                                                     underlyingError: nil)
                 throw DecodingError.dataCorrupted(context)
             }
