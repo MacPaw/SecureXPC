@@ -97,7 +97,7 @@ internal class XPCSingleValueEncodingContainer: SingleValueEncodingContainer, XP
 	func encode<T: Encodable>(_ value: T) throws {
         if let castedValue = value as? XPCRawEncodable {
             guard let encodedValue = castedValue.xpcRawValue() else {
-                let debugDescription = "Unable to encode \(self.self) to XPC data representation"
+                let debugDescription = "Unable to encode \(value.self)"
                 let context = EncodingError.Context(codingPath: codingPath,
                                                     debugDescription: debugDescription,
                                                     underlyingError: nil)

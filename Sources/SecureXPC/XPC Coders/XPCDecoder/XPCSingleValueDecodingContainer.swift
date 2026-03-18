@@ -98,9 +98,20 @@ internal class XPCSingleValueDecodingContainer: SingleValueDecodingContainer {
 	}
 
 	func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
-		return try type.init(from: XPCDecoderImpl(value: self.value,
-                                                  codingPath: self.codingPath,
-                                                  userInfo: self.userInfo))
+        if let castedType = type as? XPCRawDecodable.Type {
+            let value = self.value
+            guard let decodedType = castedType.init(xpcRawValue: value) as? T else {
+                let context = DecodingError.Context(codingPath: codingPath,
+                                                    debugDescription: "Unable to decode \(type)",
+                                                    underlyingError: nil)
+                throw DecodingError.dataCorrupted(context)
+            }
+            return decodedType
+        } else {
+            return try type.init(from: XPCDecoderImpl(value: self.value,
+                                                      codingPath: self.codingPath,
+                                                      userInfo: self.userInfo))
+        }
 	}
     
     // MARK: XPC specific decoding

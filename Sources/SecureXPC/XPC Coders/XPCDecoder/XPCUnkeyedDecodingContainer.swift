@@ -169,7 +169,7 @@ private class XPCArrayBackedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
             let xpcObject = try nextElement(type)
             guard let nextElement = castedType.init(xpcRawValue: xpcObject) else {
                 let context = DecodingError.Context(codingPath: codingPath,
-                                                    debugDescription: "Unable to decode array",
+                                                    debugDescription: "Unable to \(type)",
                                                     underlyingError: nil)
                 throw DecodingError.dataCorrupted(context)
             }

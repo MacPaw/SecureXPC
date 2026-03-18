@@ -175,7 +175,7 @@ internal class XPCUnkeyedEncodingContainer : UnkeyedEncodingContainer, XPCContai
         if let castedValue = value as? XPCRawEncodable {
             self.attemptDataBackedAppend(castedValue)
             guard let encodedValue = castedValue.xpcRawValue() else {
-                let debugDescription = "Unable to encode \(self.self) to XPC data representation"
+                let debugDescription = "Unable to encode \(value.self)"
                 let context = EncodingError.Context(codingPath: codingPath,
                                                     debugDescription: debugDescription,
                                                     underlyingError: nil)
