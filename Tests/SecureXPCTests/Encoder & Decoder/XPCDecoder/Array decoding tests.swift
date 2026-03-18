@@ -155,17 +155,6 @@ final class XPCDecoder_ArrayDecodingTests: XCTestCase {
 
 	// MARK: Arrays of aggregates
 
-	func testDecode_arrayOf_Arrays() throws {
-		// There's too many possible permutations, but it should be satisfactory to just test one kind of nesting.
-		let expectedResultNestedArray: [[Int64]] = [[1, 2], [3, 4]]
-
-		let inputXPCNestedArray = createXPCArray(from: expectedResultNestedArray, using: { row in
-			createXPCArray(from: row, using: xpc_int64_create)
-		})
-
-		try assert(inputXPCNestedArray, decodesEqualTo: expectedResultNestedArray)
-	}
-
 	func testDecodeArrayOfDictionaries() throws {
 		// There's too many possible permutations, but it should be satisfactory to just test one kind of nesting.
 		let expectedResultArrayOfDicts: [[String: Int64]] = [

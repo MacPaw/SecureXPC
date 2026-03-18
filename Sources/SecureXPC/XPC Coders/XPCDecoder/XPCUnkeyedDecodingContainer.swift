@@ -165,6 +165,18 @@ private class XPCArrayBackedUnkeyedDecodingContainer: UnkeyedDecodingContainer {
 	}
 
 	func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
+        if let castedType = type as? XPCRawDecodable.Type {
+            let xpcObject = try nextElement(type)
+            guard let nextElement = castedType.init(xpcRawValue: xpcObject) else {
+                let context = DecodingError.Context(codingPath: codingPath,
+                                                    debugDescription: "Unable to decode array",
+                                                    underlyingError: nil)
+                throw DecodingError.dataCorrupted(context)
+            }
+            currentIndex += 1
+
+            return nextElement as! T
+        }
 		let decodedElement = try T(from: XPCDecoderImpl(value: try nextElement(type),
                                                         codingPath: self.codingPath,
                                                         userInfo: self.userInfo))

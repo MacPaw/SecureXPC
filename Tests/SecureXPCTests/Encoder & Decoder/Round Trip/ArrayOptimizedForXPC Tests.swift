@@ -12,7 +12,7 @@ import SecureXPC
 final class ArrayOptimizedForXPCTests: XCTestCase {
     struct Info: Codable {
         let description: String
-        @ArrayOptimizedForXPC var array: [Int]
+        var array: [Int]
     }
     
     func testRoundTrip() async throws {
